@@ -23,17 +23,18 @@ class GitRepository:
             vers: int = int(self.config.get("core", "repositoryformatversion"))
             if vers != 0:
                 raise Exception(f"Unsupported repositoryformatversion: {vers}")
-
+            
+    def __str__(self):
+        return f"<GitRepository path={self.worktree}>"
 
     def repo_path(self, *path: str) -> str:
         """Compute path under the repo's gitdir"""
         return os.path.join(self.gitdir, *path)
 
-
     def repo_dir(self, *path: str, mkdir: bool = False) -> Optional[str]:
         """Same as repo_path, but mkdir *path if absent if mkdir"""
 
-        path = self.repo_path(*path)  # Use self, NOT repo parameter
+        path = self.repo_path(*path) 
 
         if os.path.exists(path):
             if os.path.isdir(path):
@@ -47,7 +48,6 @@ class GitRepository:
         else:
             return None
 
-
     def repo_file(self, *path: str, mkdir: bool = False) -> str:
         """Same as repo_path, but create dirname(*path) if absent."""
 
@@ -56,9 +56,9 @@ class GitRepository:
         else:
             raise Exception(f"Could not create or find directory {'/'.join(path[:-1])}")
 
-
     @staticmethod
     def repo_create(path: str) -> 'GitRepository':
+        """Creates a new repository at path."""
         repo = GitRepository(path, True)
 
         if os.path.exists(repo.worktree):
@@ -69,7 +69,6 @@ class GitRepository:
         else:
             os.makedirs(repo.worktree)
 
-        # Ensure .git directory exists
         if not os.path.exists(repo.gitdir):
             os.makedirs(repo.gitdir)
 
@@ -91,14 +90,30 @@ class GitRepository:
         return repo
 
     def repo_default_config(self) -> 'configparser.ConfigParser':
-        ret: configparser.ConfigParser = configparser.ConfigParser()
+        """Sets the configuration settings"""
+        config: configparser.ConfigParser = configparser.ConfigParser()
 
-        ret.add_section("core")
-        ret.set("core", "repositoryformatversion", "0")
-        ret.set("core", "filemode", "false")
-        ret.set("core", "bare", "false")
+        config.add_section("core")
+        config.set("core", "repositoryformatversion", "0")
+        config.set("core", "filemode", "false")
+        config.set("core", "bare", "false")
         
-        return ret
+        return config
 
-    def repo_find(self, path: str = '.', required: bool = True) -> Optional[str]:
-        pass
+    @classmethod
+    def repo_find(cls, path: str = '.', required: bool = True) -> Optional[str]:
+        """Recursively searches the Git root from the directory"""
+        path = os.path.realpath(path)
+
+        if os.path.isdir(os.path.join(path, ".git")):
+            return cls(path)
+        
+        parent = os.path.realpath(os.path.join(path, ".."))
+        
+        if parent == path:
+            if required:
+                raise Exception("No git directory.")
+            else:
+                return None
+            
+        return cls.repo_find(parent, required)
