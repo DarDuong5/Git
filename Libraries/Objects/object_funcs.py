@@ -3,6 +3,8 @@ import os
 import zlib
 import hashlib
 
+from git_blob import GitBlob
+
 
 if TYPE_CHECKING:
     from GitRepo.git_repository import GitRepository
@@ -32,7 +34,7 @@ def object_read(repo: 'GitRepository', sha: str) -> 'GitObject':
             # case b'commit': c=GitCommit
             # case b'tree': c=GitTree
             # case b'tag': c=GitTag
-            # case b'blob': c=GitBlob
+            case b'blob': c=GitBlob
             case _:
                 raise Exception(f"Unknown type {fmt.decode("ascii")} for object {sha}")
             
