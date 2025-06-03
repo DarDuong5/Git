@@ -1,7 +1,7 @@
-from git_object import GitObject
+from Objects.git_object import GitObject
 
 class GitBlob(GitObject):
-    fmt = b'blob'
+    object_type = b'blob'
 
     def serialize(self) -> bytes:
         return self.blobdata
