@@ -4,10 +4,9 @@ import zlib
 import hashlib
 
 from Objects.git_blob import GitBlob
-
+from GitRepo.git_repository import GitRepository
 
 if TYPE_CHECKING:
-    from GitRepo.git_repository import GitRepository
     from git_object import GitObject
 
 def object_read(repo: 'GitRepository', sha: str) -> Optional['GitObject']:
