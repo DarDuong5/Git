@@ -103,12 +103,12 @@ class GitRepository:
     @classmethod
     def repo_find(cls, path: str = '.', required: bool = True) -> Optional[str]:
         """Recursively searches the Git root from the directory"""
-        path = os.path.realpath(path)
+        path: str = os.path.realpath(path)
 
         if os.path.isdir(os.path.join(path, ".git")):
             return cls(path)
         
-        parent = os.path.realpath(os.path.join(path, ".."))
+        parent: str = os.path.realpath(os.path.join(path, ".."))
         
         if parent == path:
             if required:

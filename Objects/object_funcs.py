@@ -21,12 +21,12 @@ def object_read(repo: 'GitRepository', sha: str) -> Optional['GitObject']:
     with open(path, "rb") as f:
         raw: bytes = zlib.decompress(f.read())
 
-        x: int = raw.find(b' ') 
-        object_type: bytes = raw[0:x] 
+        space_index: int = raw.find(b' ') 
+        object_type: bytes = raw[0:space_index] 
 
-        y: int = raw.find(b'\x00', x) 
-        size: int = int(raw[x:y].decode("ascii")) 
-        if size != len(raw) - y - 1:
+        null_index: int = raw.find(b'\x00', space_index) 
+        size: int = int(raw[space_index:null_index].decode("ascii")) 
+        if size != len(raw) - null_index - 1:
             raise Exception(f"Malformed object {sha}: bad length")
         
         match object_type:
@@ -37,7 +37,7 @@ def object_read(repo: 'GitRepository', sha: str) -> Optional['GitObject']:
             case _:
                 raise Exception(f"Unknown type {object_type.decode('ascii')} for object {sha}")
             
-        return c(raw[y + 1:])
+        return c(raw[null_index + 1:])
 
 def object_write(obj: 'GitObject', repo: 'GitRepository' = None) -> str:
     data: bytes = obj.serialize()
