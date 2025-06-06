@@ -5,7 +5,7 @@ from blinker import Namespace
 
 from GitRepo.git_repository import GitRepository
 from Libraries.Arguments.args import *
-from Objects.object_read_write import object_read, object_write
+from Objects.object_funcs import object_read, object_write
 from Objects.Blobs.git_blob import GitBlob
 from Objects.Commits.git_commit import GitCommit
 

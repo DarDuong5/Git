@@ -1,0 +1,28 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VS Code settings
+.vscode/
+
+# Log files
+*.log
+log.dot
+log.pdf
+
+# Test outputs or temp files
+*.txt
+
+# Ignore environment or OS-specific files
+.DS_Store
+*.swp
+
+# Compiled Python environments
+*.egg-info/
+.venv/
+env/
+venv/
+
+# Ignore pytest cache
+.pytest_cache/
