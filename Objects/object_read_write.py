@@ -3,7 +3,8 @@ import os
 import zlib
 import hashlib
 
-from Objects.git_blob import GitBlob
+from Objects.Blobs.git_blob import GitBlob
+from Objects.Commits.git_commit import GitCommit
 from GitRepo.git_repository import GitRepository
 
 if TYPE_CHECKING:
@@ -30,7 +31,7 @@ def object_read(repo: 'GitRepository', sha: str) -> Optional['GitObject']:
             raise Exception(f"Malformed object {sha}: bad length")
         
         match object_type:
-            # case b'commit': c=GitCommit
+            case b'commit': c=GitCommit
             # case b'tree': c=GitTree
             # case b'tag': c=GitTag
             case b'blob': c=GitBlob

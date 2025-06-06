@@ -18,3 +18,6 @@ argsp = argsubparsers.add_parser("hash-object", help="Compute object ID and opti
 argsp.add_argument("-t", metavar="type", dest="type", choices=["blob", "commit", "tag", "tree"], default="blob", help="Specify the type.")
 argsp.add_argument("-w", dest="write", action="store_true", help="Actually write the object into the database.")
 argsp.add_argument("path", help="Read objects from <file>.")
+
+argsp = argsubparsers.add_parser("log", help="Display history of a given commit.")
+argsp.add_argument("commit", default="HEAD", nargs="?", help="Commit to start at.")
