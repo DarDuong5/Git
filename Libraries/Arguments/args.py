@@ -1,6 +1,6 @@
 import argparse
 
-argparser = argparse.ArgumentParser(description="Hello, welcome to Wyag!")
+argparser = argparse.ArgumentParser(description="Hello, welcome to BootGit!")
 argsubparsers: argparse.ArgumentParser = argparser.add_subparsers(title="Commands", dest="command")
 argsubparsers.required = True 
 
