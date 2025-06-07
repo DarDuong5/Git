@@ -28,7 +28,7 @@ def tree_parse(raw: bytes) -> list['GitTreeLeaf']:
     max: int = len(raw)
     ret: list['GitTreeLeaf'] = []
     while pos < max:
-        pos, data = tree_parse_one(raw, data)
+        pos, data = tree_parse_one(raw, pos)
         ret.append(data)
     
     return ret

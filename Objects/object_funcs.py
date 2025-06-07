@@ -5,6 +5,7 @@ import hashlib
 
 from Objects.Blobs.git_blob import GitBlob
 from Objects.Commits.git_commit import GitCommit
+from Objects.Trees.git_tree import GitTree
 from GitRepo.git_repository import GitRepository
 
 if TYPE_CHECKING:
@@ -32,7 +33,7 @@ def object_read(repo: 'GitRepository', sha: str) -> Optional['GitObject']:
         
         match object_type:
             case b'commit': c=GitCommit
-            # case b'tree': c=GitTree
+            case b'tree': c=GitTree
             # case b'tag': c=GitTag
             case b'blob': c=GitBlob
             case _:
