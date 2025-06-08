@@ -2,11 +2,11 @@ import sys
 from typing import TYPE_CHECKING, BinaryIO, Optional
 from blinker import Namespace
 
-import GitRepo
 from Libraries.Arguments.args import *
 from GitRepo.git_repository import GitRepository
 from Objects.Trees.git_tree import GitTree
 from Objects.object_funcs import *
+from Refs.ref_funcs import *
 
 if TYPE_CHECKING:
     from Objects.git_object import GitObject
@@ -157,3 +157,9 @@ def tree_checkout(repo: 'GitRepository', tree, path: str) -> None:
         elif obj.object_type == b'blob':
             with open(dest, 'wb') as f:
                 f.write(obj.blobdata)
+
+# ------------------------------------------------[show-ref]--------------------------------------------------
+
+# def cmd_show_ref(args: Namespace) -> None:
+#     repo: 'GitRepository' = GitRepository.repo_find()
+#     refs: dict[str, Optional[dict[]]] = ref_list(repo)

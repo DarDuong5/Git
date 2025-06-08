@@ -12,6 +12,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
         case "log":             cmd_log(args)
         case "ls-tree":         cmd_ls_tree(args)
         case "checkout":        cmd_checkout(args)
+        case "show-ref":        cmd_show_ref(args)
         case _:                 print("Invalid command.")
 
 if __name__ == "__main__":
