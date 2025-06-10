@@ -4,7 +4,7 @@ from typing import Optional, Union
 
 from GitRepo.git_repository import GitRepository
 
-
+DictRefs = dict[str, Union[str, 'DictRefs']]
 
 def ref_resolve(repo: 'GitRepository', ref: str) -> str:
     path = GitRepository.repo_file(repo, ref)
@@ -20,7 +20,7 @@ def ref_resolve(repo: 'GitRepository', ref: str) -> str:
     else:
         return data
 
-def ref_list(repo: 'GitRepository', path: Optional[str] = None) -> dict[str, Union[str, ]]:
+def ref_list(repo: 'GitRepository', path: Optional[str] = None) -> DictRefs:
     if not path:
         path = GitRepository.repo_dir(repo, "refs")
     

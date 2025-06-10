@@ -23,7 +23,7 @@ argsp = argsubparsers.add_parser("log", help="Display history of a given commit.
 argsp.add_argument("commit", default="HEAD", nargs="?", help="Commit to start at.")
 
 argsp = argsubparsers.add_parser("ls-tree", help="Pretty-print a tree object.")
-argsp.add_argument("-r", dest="recursive", action="store_true", help="Recurse into subt-trees.")
+argsp.add_argument("-r", dest="recursive", action="store_true", help="Recurse into sub-trees.")
 argsp.add_argument("tree", help="A tree-ish object.")
 
 argsp = argsubparsers.add_parser("checkout", help="Checkout a commit inside of a directory.")
@@ -31,3 +31,9 @@ argsp.add_argument("commit", help="The commit or tree to checkout.")
 argsp.add_argument("path", help="The EMPTY directory to checkout on.")
 
 argsp = argsubparsers.add_parser("show-ref", help="List references.")
+
+argps = argsubparsers.add_parser("tag", help="List and create tags.")
+argsp.add_argument("-a", action="store_true", dest="create_tag_object", help="Whether to create a tag object.")
+argsp.add_argument("name", nargs="?", help="The new tag's name.")
+argsp.add_argument("object", default="HEAD", nargs="?", help="The object the new tag will point to.")
+

@@ -11,6 +11,9 @@ from Refs.ref_funcs import *
 if TYPE_CHECKING:
     from Objects.git_object import GitObject
 
+DictRefs = dict[str, Union[str, 'DictRefs']]
+
+
 # ------------------------------------------------[init]--------------------------------------------------
 
 def cmd_init(args: argparse.Namespace) -> None:
@@ -160,6 +163,32 @@ def tree_checkout(repo: 'GitRepository', tree, path: str) -> None:
 
 # ------------------------------------------------[show-ref]--------------------------------------------------
 
-# def cmd_show_ref(args: Namespace) -> None:
-#     repo: 'GitRepository' = GitRepository.repo_find()
-#     refs: dict[str, Optional[dict[]]] = ref_list(repo)
+def cmd_show_ref(args: Namespace) -> None:
+    repo: 'GitRepository' = GitRepository.repo_find()
+    refs = ref_list(repo)
+    show_ref(repo, refs, prefix="refs")
+
+def show_ref(repo: 'GitRepository', refs: dict, with_hash: bool = True, prefix: str = "refs") -> None:
+    if prefix:
+        prefix += "/"
+    for k, v in refs.items():
+        if type(v) == str and with_hash:
+            print(f"{v} {prefix}{k}")
+        elif type(v) == str:
+            print(f"{prefix}{k}")
+        else:
+            show_ref(repo, v, with_hash=with_hash, prefix=f"{prefix}{k}")
+
+# ------------------------------------------------[tag]--------------------------------------------------
+
+def cmd_tag(args: Namespace) -> None:
+    repo: 'GitRepository' = GitRepository.repo_find()
+
+    if args.name:
+        pass
+
+def tags_create(repo: 'GitRepository', name, ref, create_tag_object: bool = False) -> None:
+    pass
+
+def ref_create(repo: 'GitRepository', ref_name, sha) -> None:
+    pass
