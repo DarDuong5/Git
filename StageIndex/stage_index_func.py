@@ -35,13 +35,13 @@ def index_read(repo: 'GitRepository') -> 'GitIndex':
         unused = int.from_bytes(content[idx+24:idx+26], "big")
         assert 0 == unused
 
-        mode = int.from_bytes(content[idx+26:idx+28])
+        mode = int.from_bytes(content[idx+26:idx+28], "big")
         mode_type = mode >> 12
         assert mode_type in [0b1000, 0b1010, 0b1110]
 
         mode_perms = mode & 0b0000000111111111
         uid = int.from_bytes(content[idx+28:idx+32], "big")
-        gid = int.from_bytes(content[content[idx+32:idx+36], "big"])
+        gid = int.from_bytes(content[idx+32:idx+36], "big")
         fsize = int.from_bytes(content[idx+36:idx+40], "big")
         sha = format(int.from_bytes(content[idx+40:idx+60], "big"), "040x")
         flags = int.from_bytes(content[idx+60:idx+62], "big")

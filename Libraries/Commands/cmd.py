@@ -1,7 +1,10 @@
+import grp
+import pwd
 import sys
 from typing import TYPE_CHECKING, BinaryIO, Optional
 from blinker import Namespace
 import re
+from datetime import datetime
 
 from Libraries.Arguments.args import *
 from GitRepo.git_repository import GitRepository
@@ -9,9 +12,11 @@ from Objects.Trees.git_tree import GitTree
 from Objects.object_funcs import *
 from Refs.ref_funcs import *
 from Objects.Tags.git_tag import GitTag
+from StageIndex.stage_index_func import index_read
 
 if TYPE_CHECKING:
     from Objects.git_object import GitObject
+    from StageIndex.GitIndex.git_index import GitIndex
 
 DictRefs = dict[str, Union[str, 'DictRefs']]
 
@@ -285,3 +290,27 @@ def cmd_rev_parse(args: Namespace) -> None:
 
     print(object_find(repo, args.name, object_type, follow=True))
 
+# ------------------------------------------------[ls-files]--------------------------------------------------
+
+def cmd_ls_files(args: Namespace) -> None:
+    repo: 'GitRepository' = GitRepository.repo_find()
+    index: 'GitIndex' = index_read(repo)
+    if args.verbose:
+        print(f"Index file format v{index.version}, containing {len(index.entries)} entries.")
+    
+    for e in index.entries:
+        print(e.name)
+        if args.verbose:
+            entry_type = {0b1000: "regular file",
+                        0b1010: "symlink",
+                        0b1110: "git link"}[e.mode_type]
+            print(f"\t{entry_type} with perms: {e.mode_perms:o}")
+            print(f"\ton blob: {e.sha}")
+
+            created: datetime = datetime.fromtimestamp(e.ctime[0])
+            modified: datetime = datetime.fromtimestamp(e.mtime[0])
+            print(f"\tcreated: {created}.{e.ctime[1]:09d}, modified: {modified}.{e.mtime[1]:09d}")
+
+            print(f"\tdevice: {e.dev}, inode: {e.ino}")
+            print(f"\tuser: {pwd.getpwuid(e.uid).pw_name} ({e.uid}), group: {grp.getgrgid(e.gid).gr_name} ({e.gid})")
+            print(f"\tflags: stage={e.flag_stage} assume_valid={e.flag_assume_valid}")

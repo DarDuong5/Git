@@ -41,3 +41,5 @@ argsp = argsubparsers.add_parser("rev-parse", help="Parse revision (or other obj
 argsp.add_argument("--bootgit-type", metavar="type", dest="type", choices=["blob", "commit", "tag", "tree"], default=None, help="Specify the expected type.")
 argsp.add_argument("name", help="The name to parse.")
 
+argsp = argsubparsers.add_parser("ls-files", help="Displays the names of files in the staging area.")
+argsp.add_argument("--verbose", action="store_true", help="Show everything.")
