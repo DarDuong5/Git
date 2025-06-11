@@ -91,7 +91,7 @@ def object_hash(file_desc: BinaryIO, object_type: bytes, repo: 'GitRepository' =
     match object_type:
         case b'commit': obj=GitCommit(data)
         case b'tree': obj=GitTree(data)
-        # case b'tag': obj=GitTag(data)
+        case b'tag': obj=GitTag(data)
         case b'blob': obj=GitBlob(data)
         case _: raise Exception(f"Unknown type {object_type}!")
 
@@ -314,3 +314,18 @@ def cmd_ls_files(args: Namespace) -> None:
             print(f"\tdevice: {e.dev}, inode: {e.ino}")
             print(f"\tuser: {pwd.getpwuid(e.uid).pw_name} ({e.uid}), group: {grp.getgrgid(e.gid).gr_name} ({e.gid})")
             print(f"\tflags: stage={e.flag_stage} assume_valid={e.flag_assume_valid}")
+
+# ------------------------------------------------[check-ignore]--------------------------------------------------
+
+def cmd_check_ignore(args: Namespace) -> None:
+    repo: 'GitRepository' = GitRepository.repo_find()
+    rules = gitignore_read(repo)
+    for path in args.path:
+        if check_ignore(rules, path):
+            print(path)
+
+def gitignore_read():
+    pass
+
+def check_ignore():
+    pass

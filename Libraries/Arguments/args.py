@@ -43,3 +43,6 @@ argsp.add_argument("name", help="The name to parse.")
 
 argsp = argsubparsers.add_parser("ls-files", help="Displays the names of files in the staging area.")
 argsp.add_argument("--verbose", action="store_true", help="Show everything.")
+
+argsp = argsubparsers.add_parser("check-ignore", help="Check path(s) against ignore rules.")
+argsp.add_argument("path", nargs="+", help="Paths to check.")
