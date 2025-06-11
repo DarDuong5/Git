@@ -1,8 +1,8 @@
 import sys
 from typing import TYPE_CHECKING, BinaryIO, Optional
 from blinker import Namespace
+import re
 
-import GitRepo
 from Libraries.Arguments.args import *
 from GitRepo.git_repository import GitRepository
 from Objects.Trees.git_tree import GitTree
@@ -40,7 +40,33 @@ def cat_file(repo: 'GitRepository', obj: str, object_type: Optional[bytes] = Non
     sys.stdout.buffer.write(obj.serialize())
 
 def object_find(repo: 'GitRepository', name: str, object_type: 'GitObject' = None, follow: bool = True) -> str:
-    return name
+    sha: list[str] = object_resolve(repo, name)
+    if not sha:
+        raise Exception(f"No such reference {name}.")
+    if len(sha) > 1:
+        candidates = '\n - '.join(sha)
+        raise Exception(f"Ambiguous reference {name}: Candidates are: \n - {candidates}.")
+    
+    sha: str = sha[0]
+
+    if not object_type:
+        return sha
+    
+    while True:
+        obj: 'GitObject' = object_read(repo, sha)
+        if obj.object_type == object_type:
+            return sha
+        
+        if not follow:
+            return None
+        
+        if obj.object_type == b'tag':
+            sha = obj.kvlm[b'object'].decode("ascii")
+        elif obj.object_type == b'commit' and object_type == b'tree':
+            sha = obj.kvlm[b'tree'].decode("ascii")
+        else:
+            return None
+
 
 # # ------------------------------------------------[hash-object]--------------------------------------------------
 
@@ -212,3 +238,50 @@ def ref_create(repo: 'GitRepository', ref_name: str, sha: str) -> None:
     filename: str = GitRepository.repo_file(repo, "refs/" + ref_name)
     with open(filename, "w") as f:
         f.write(sha + "\n")
+
+# ------------------------------------------------[rev-parse]--------------------------------------------------
+
+def object_resolve(repo: 'GitRepository', name: str) -> list[str]:
+    candidates: list[str] = []
+    hashRE: re = re.compile(r"^[0-9A-Fa-f]{4,40}$")
+
+    if not name.strip():
+        return None
+    
+    if name == "HEAD":
+        return [ref_resolve(repo, "HEAD")]
+    
+    if hashRE.match(name):
+        name = name.lower()
+        prefix: str = name[0:2]
+        path: Optional[str] = GitRepository.repo_dir(repo, "objects", prefix, mkdir=False)
+        if path:
+            remaining: str = name[2:]
+            for file in os.listdir(path):
+                if file.startwith(remaining):
+                    candidates.append(prefix + file)
+
+    as_tag: str = ref_resolve(repo, "ref/tags/" + name)
+    if as_tag:
+        candidates.append(as_tag)
+
+    as_branch: str = ref_resolve(repo, "ref/heads/" + name)
+    if as_branch:
+        candidates.append(as_branch)
+
+    as_remote_branch: str = ref_resolve(repo, "ref/remotes/" + name)
+    if as_remote_branch:
+        candidates.append(as_remote_branch)
+
+    return candidates
+
+def cmd_rev_parse(args: Namespace) -> None:
+    if args.type:
+        object_type: bytes = args.type.encode()
+    else:
+        object_type = None
+
+    repo: 'GitRepository' = GitRepository.repo_find()
+
+    print(object_find(repo, args.name, object_type, follow=True))
+

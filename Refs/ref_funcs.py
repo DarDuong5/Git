@@ -34,3 +34,4 @@ def ref_list(repo: 'GitRepository', path: Optional[str] = None) -> DictRefs:
             ret[entry] = ref_resolve(repo, full_path)
     
     return ret
+

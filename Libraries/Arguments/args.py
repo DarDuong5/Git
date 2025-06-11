@@ -32,8 +32,12 @@ argsp.add_argument("path", help="The EMPTY directory to checkout on.")
 
 argsp = argsubparsers.add_parser("show-ref", help="List references.")
 
-argps = argsubparsers.add_parser("tag", help="List and create tags.")
+argsp = argsubparsers.add_parser("tag", help="List and create tags.")
 argsp.add_argument("-a", action="store_true", dest="create_tag_object", help="Whether to create a tag object.")
 argsp.add_argument("name", nargs="?", help="The new tag's name.")
 argsp.add_argument("object", default="HEAD", nargs="?", help="The object the new tag will point to.")
+
+argsp = argsubparsers.add_parser("rev-parse", help="Parse revision (or other objects) indentifiers.")
+argsp.add_argument("--bootgit-type", metavar="type", dest="type", choices=["blob", "commit", "tag", "tree"], default=None, help="Specify the expected type.")
+argsp.add_argument("name", help="The name to parse.")
 
