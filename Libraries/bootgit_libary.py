@@ -16,6 +16,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
         case "tag":             cmd_tag(args)
         case "rev-parse":       cmd_rev_parse(args)
         case "ls-files":        cmd_ls_files(args)
+        case "check-ignore":    cmd_check_ignore(args)
         case _:                 print("Invalid command.")
 
 if __name__ == "__main__":

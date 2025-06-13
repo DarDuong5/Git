@@ -7,6 +7,7 @@ from Objects.Blobs.git_blob import GitBlob
 from Objects.Commits.git_commit import GitCommit
 from Objects.Trees.git_tree import GitTree
 from GitRepo.git_repository import GitRepository
+from Objects.Tags.git_tag import GitTag
 
 if TYPE_CHECKING:
     from git_object import GitObject
@@ -34,7 +35,7 @@ def object_read(repo: 'GitRepository', sha: str) -> Optional['GitObject']:
         match object_type:
             case b'commit': c=GitCommit
             case b'tree': c=GitTree
-            # case b'tag': c=GitTag
+            case b'tag': c=GitTag
             case b'blob': c=GitBlob
             case _:
                 raise Exception(f"Unknown type {object_type.decode('ascii')} for object {sha}")

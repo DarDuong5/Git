@@ -13,6 +13,8 @@ from Objects.object_funcs import *
 from Refs.ref_funcs import *
 from Objects.Tags.git_tag import GitTag
 from StageIndex.stage_index_func import index_read
+from GitIgnore.git_ignore_func import check_ignored_absolute, check_ignored_scoped, gitignore_read
+from GitIgnore.Ignore.git_ignore import GitIgnore
 
 if TYPE_CHECKING:
     from Objects.git_object import GitObject
@@ -324,8 +326,12 @@ def cmd_check_ignore(args: Namespace) -> None:
         if check_ignore(rules, path):
             print(path)
 
-def gitignore_read():
-    pass
-
-def check_ignore():
-    pass
+def check_ignore(rules: 'GitIgnore', path: str) -> Optional[bool]:
+    if os.path.isabs(path):
+        raise Exception("This function requires path to be relative to the repository's root.")
+    
+    result: Optional[bool] = check_ignored_scoped(rules.scoped, path)
+    if result != None:
+        return result
+    
+    return check_ignored_absolute(rules.absolute, path)
