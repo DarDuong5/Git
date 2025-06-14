@@ -46,3 +46,5 @@ argsp.add_argument("--verbose", action="store_true", help="Show everything.")
 
 argsp = argsubparsers.add_parser("check-ignore", help="Check path(s) against ignore rules.")
 argsp.add_argument("path", nargs="+", help="Paths to check.")
+
+arps = argsubparsers.add_parser("status", help="Show the working tree status.")

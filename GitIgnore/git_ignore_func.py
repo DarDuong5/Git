@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Optional
 import os
 
 from GitIgnore.Ignore.git_ignore import GitIgnore
-from Objects.object_funcs import object_read
+from Objects.object_func import object_read
 from StageIndex.stage_index_func import index_read
 
 if TYPE_CHECKING:
@@ -45,6 +45,10 @@ def gitignore_read(repo: 'GitRepository') -> 'GitIgnore':
     else:
         config_home: str = os.path.expanduser("~/.config")
     global_file: str = os.path.join(config_home, "git/ignore")
+
+    if os.path.exists(global_file):
+        with open(global_file, "r") as f:
+            ret.absolute.append(gitignore_parse(f.readlines()))
 
     index: 'GitIndex' = index_read(repo)
 

@@ -1,4 +1,5 @@
 import grp
+from os import stat_result
 import pwd
 import sys
 from typing import TYPE_CHECKING, BinaryIO, Optional
@@ -6,11 +7,12 @@ from blinker import Namespace
 import re
 from datetime import datetime
 
+import GitRepo
 from Libraries.Arguments.args import *
 from GitRepo.git_repository import GitRepository
 from Objects.Trees.git_tree import GitTree
-from Objects.object_funcs import *
-from Refs.ref_funcs import *
+from Objects.object_func import *
+from Refs.ref_func import *
 from Objects.Tags.git_tag import GitTag
 from StageIndex.stage_index_func import index_read
 from GitIgnore.git_ignore_func import check_ignored_absolute, check_ignored_scoped, gitignore_read
@@ -87,8 +89,8 @@ def cmd_hash_object(args: argparse.Namespace) -> None:
         sha = object_hash(file_desc, args.type.encode(), repo)
         print(sha)
 
-def object_hash(file_desc: BinaryIO, object_type: bytes, repo: 'GitRepository' = None):
-    data = file_desc.read()
+def object_hash(file_desc: BinaryIO, object_type: bytes, repo: 'GitRepository' = None) -> str:
+    data: bytes = file_desc.read()
 
     match object_type:
         case b'commit': obj=GitCommit(data)
@@ -265,7 +267,7 @@ def object_resolve(repo: 'GitRepository', name: str) -> list[str]:
         if path:
             remaining: str = name[2:]
             for file in os.listdir(path):
-                if file.startwith(remaining):
+                if file.startswith(remaining):
                     candidates.append(prefix + file)
 
     as_tag: str = ref_resolve(repo, "ref/tags/" + name)
@@ -335,3 +337,112 @@ def check_ignore(rules: 'GitIgnore', path: str) -> Optional[bool]:
         return result
     
     return check_ignored_absolute(rules.absolute, path)
+
+# ------------------------------------------------[status]--------------------------------------------------
+
+def cmd_status(_) -> None:
+    repo: 'GitRepository' = GitRepository.repo_find()
+    index: 'GitIndex' = index_read(repo)
+
+    cmd_status_branch(repo)
+    cmd_status_head_index(repo, index)
+    print()
+    cmd_status_index_work_tree(repo, index)
+
+def branch_get_active(repo: 'GitRepository') -> Union[bool, str]:
+    with open(GitRepository.repo_file(repo, "HEAD"), "r") as f:
+        head = f.read()
+
+    if head.startswith("ref: ref/heads/"):
+        return head[16:-1]
+    else:
+        return False
+    
+def cmd_status_branch(repo: 'GitRepository') -> None:
+    branch = branch_get_active(repo)
+    if branch:
+        print(f"On branch {branch}.")
+    else:
+        print(f"HEAD detached at {object_find(repo, 'HEAD')}")
+
+def tree_to_dict(repo: 'GitRepository', ref: str, prefix: str = "") -> dict:
+    ret: dict = dict()
+    tree_sha: str = object_find(repo, ref, object_type=b'tree')
+    tree: Optional[GitObject] = object_read(repo, tree_sha)
+
+    for leaf in tree.items:
+        full_path: str = os.path.join(prefix, leaf.path)
+
+        is_subtree: bool = leaf.mode.startswith(b'04')
+
+        if is_subtree:
+            ret.update(tree_to_dict(repo, leaf.sha, full_path))
+        else:
+            ret[full_path] = leaf.sha
+
+    return ret
+
+# Signature: GitRepository, GitIndex -> None
+# Purpose: Compares the HEAD tree with the index (staging area) to see what changes are staged for commit.
+def cmd_status_head_index(repo: 'GitRepository', index: 'GitIndex') -> None:
+    print("Changes to be commmited:")
+
+    head = tree_to_dict(repo, "HEAD")
+    for entry in index.entries:
+        if entry in head:
+            if head[entry.name] != entry.sha:
+                print(f"\t modified {entry.name}")
+            del head[entry.name]
+        else:
+            print(f"\t added {entry.name}")
+
+    for item in head.keys():
+        print(f"\t removed {item}")
+
+# Signature: GitRepository, GitIndex -> None 
+# Purpose: Compares the index (staging area) with the working directory to see what changes are not yet staged for commit.
+#          Identifies untracked (new) files not in the index.
+def cmd_status_index_work_tree(repo: 'GitRepository', index: 'GitIndex') -> None:
+    print("Changes not staged for commit:")
+
+    ignore: 'GitIgnore' = gitignore_read(repo)
+    
+    gitdir_prefix: str = repo.gitdir + os.path.sep
+
+    all_files: list[str] = []
+
+    for (root, _, files) in os.walk(repo.worktree, True):
+        if root == repo.gitdir or root.startswith(gitdir_prefix):
+            continue
+        for f in files:
+            full_path: str = os.path.join(root, f)
+            rel_path: str = os.path.relpath(full_path, repo.worktree)
+            all_files.append(rel_path)
+
+    for entry in index.entries:
+        full_path: str = os.path.join(repo.worktree, entry.name)
+
+        if not os.path.exists(full_path):
+            print(f"\t deleted {entry.name}")
+        else:
+            stat: stat_result = os.stat(full_path)
+
+            ctime_ns = entry.ctime[0] * 10**9 + entry.ctime[1]
+            mtime_ns = entry.mtime[0] * 10**9 + entry.mtime[1]
+            if (stat.st_ctime_ns != ctime_ns) or (stat.st_mtime_ns != mtime_ns):
+                with open(full_path, "rb") as fd:
+                    new_sha = object_hash(fd, b'blob', None)
+                    same = entry.sha == new_sha
+                if not same:
+                    print(f"\t modified {entry.name}")
+
+        if entry.name in all_files:
+            all_files.remove(entry.name)
+
+    print()
+    print("Untracked files:")
+
+    for f in all_files:
+        if not check_ignore(ignore, f):
+            print(f"\t{f}")
+        

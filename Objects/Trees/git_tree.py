@@ -1,5 +1,5 @@
 from Objects.git_object import GitObject
-from Objects.tree_funcs import *
+from Objects.tree_func import *
 
 class GitTree(GitObject):
     object_type = b'tree'
