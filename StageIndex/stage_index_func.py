@@ -81,3 +81,50 @@ def index_read(repo: 'GitRepository') -> 'GitIndex':
                                     name=name))
         
     return GitIndex(version=version, entries=entries)
+
+# Signature: GitRepository, GitIndex -> None
+# Purpose: Serializes all of the Git entries back into binary.
+def index_write(repo: 'GitRepository', index: 'GitIndex') -> None:
+    with open(GitRepository.repo_find(repo, "index"), "wb") as f:
+        f.write(b'DIRC')
+        f.write(index.version.to_bytes(4, "big"))
+        f.write(len(index.entries).to_bytes(4, "big"))
+
+        idx: int = 0
+        for entry in index.entries:
+            f.write(entry.ctime[0].to_bytes(4, "big"))
+            f.write(entry.ctime[1].to_bytes(4, "big"))
+            f.write(entry.mtime[0].to_bytes(4, "big"))
+            f.write(entry.mtime[1].to_bytes(4, "big"))
+            f.write(entry.dev.to_bytes(4, "big"))
+            f.write(entry.dev.to_bytes(4, "big"))
+
+            mode = (entry.mode_type << 12) | entry.mode_perms
+            f.write(mode.to_bytes(4, "big"))
+
+            f.write(entry.uid.to_bytes(4, "big"))
+            f.write(entry.gid.to_bytes(4, "big"))
+
+            f.write(entry.fsize.to_bytes(4, "big"))
+            f.write(int(entry.sha, 16).to_bytes(20, "big"))
+
+            flag_assume_valid = 0x1 << 15 if entry.flag_assume_valid else 0
+
+            name_bytes = entry.name.encode("utf8")
+            bytes_len = len(name_bytes)
+            if bytes_len >= 0xFFF:
+                name_length = 0xFFF
+            else:
+                name_length = bytes_len
+            
+            f.write((flag_assume_valid | entry.flag_stage | name_length).to_bytes(2, "big"))
+
+            f.write(name_bytes)
+            f.write((0).to_bytes(1, "big"))
+
+            idx += 62 + len(name_bytes) + 1
+            if idx % 8 != 0:
+                pad = 8 - (idx % 8)
+                f.write((0).to_bytes(pad, "big"))
+                idx += pad
+
