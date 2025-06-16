@@ -1,5 +1,6 @@
 import grp
 from os import stat_result
+from posixpath import abspath
 import pwd
 import sys
 from typing import TYPE_CHECKING, BinaryIO, Optional
@@ -14,7 +15,7 @@ from Objects.Trees.git_tree import GitTree
 from Objects.object_func import *
 from Refs.ref_func import *
 from Objects.Tags.git_tag import GitTag
-from StageIndex.stage_index_func import index_read
+from StageIndex.stage_index_func import index_read, index_write
 from GitIgnore.git_ignore_func import check_ignored_absolute, check_ignored_scoped, gitignore_read
 from GitIgnore.Ignore.git_ignore import GitIgnore
 
@@ -446,3 +447,48 @@ def cmd_status_index_work_tree(repo: 'GitRepository', index: 'GitIndex') -> None
         if not check_ignore(ignore, f):
             print(f"\t{f}")
         
+# ------------------------------------------------[rm]--------------------------------------------------
+
+# Signature: Namespace -> None
+# Purpose: Gets the argument from the CLI and delegates to the rm function.
+def cmd_rm(args: Namespace) -> None:
+    repo: 'GitRepository' = GitRepository.repo_find()
+    rm(repo, args.path)
+
+# Signature: GitRepository, list[paths], bool, bool -> None
+# Purpose: 
+def rm(repo: 'GitRepository', paths: list[str], delete: bool = True, skip_missing: bool = False) -> None:
+    index: 'GitIndex' = index_read(repo)
+    worktree: str = repo.worktree + os.sep
+    absolute_paths: set = {}
+    
+    for path in paths:
+        absolute_path: str = os.path.abspath(path)
+        if absolute_path.startswith(worktree):
+            absolute_paths.add(path)
+        else:
+            raise Exception("Cannot remove paths outside of the worktree.")
+    
+    kept_entries: list = []
+    removed_entries: list = []
+
+    for e in index.entries:
+        full_path: str = os.path.join(repo.worktree, e.name)
+        if full_path in absolute_paths:
+            removed_entries.append(full_path)
+            absolute_paths.remove(full_path)
+        else:
+            kept_entries.append(e)
+    
+    if len(absolute_paths) > 0 and not skip_missing:
+        raise Exception(f"Cannot remove paths not in the index: {absolute_paths}")
+    
+    if delete:
+        for path in removed_entries:
+            os.unlink(path)
+
+    index.entries = kept_entries
+    index_write(repo, index)
+
+
+

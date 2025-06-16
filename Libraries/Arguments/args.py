@@ -48,3 +48,6 @@ argsp = argsubparsers.add_parser("check-ignore", help="Check path(s) against ign
 argsp.add_argument("path", nargs="+", help="Paths to check.")
 
 arps = argsubparsers.add_parser("status", help="Show the working tree status.")
+
+args = argsubparsers.add_parser("rm", help="Remove files from the working tree and the index.")
+argsp.add_argument("path", nargs="+", help="Files to remove.")

@@ -18,6 +18,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
         case "ls-files":        cmd_ls_files(args)
         case "check-ignore":    cmd_check_ignore(args)
         case "status":          cmd_status(_=args)
+        case "rm":              cmd_status(args)
         case _:                 print("Invalid command.")
 
 if __name__ == "__main__":
