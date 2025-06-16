@@ -8,7 +8,7 @@ from blinker import Namespace
 import re
 from datetime import datetime
 
-import GitRepo
+from StageIndex.IndexEntry.git_index_entry import GitIndexEntry
 from Libraries.Arguments.args import *
 from GitRepo.git_repository import GitRepository
 from Objects.Trees.git_tree import GitTree
@@ -450,13 +450,13 @@ def cmd_status_index_work_tree(repo: 'GitRepository', index: 'GitIndex') -> None
 # ------------------------------------------------[rm]--------------------------------------------------
 
 # Signature: Namespace -> None
-# Purpose: Gets the argument from the CLI and delegates to the rm function.
+# Purpose: Extracts the argument from the CLI and delegates to the rm function.
 def cmd_rm(args: Namespace) -> None:
     repo: 'GitRepository' = GitRepository.repo_find()
     rm(repo, args.path)
 
-# Signature: GitRepository, list[paths], bool, bool -> None
-# Purpose: 
+# Signature: GitRepository, list[str], bool, bool -> None
+# Purpose: Gets the a repo and a list of paths, reads that repo index and removes entries that matches that list of paths.
 def rm(repo: 'GitRepository', paths: list[str], delete: bool = True, skip_missing: bool = False) -> None:
     index: 'GitIndex' = index_read(repo)
     worktree: str = repo.worktree + os.sep
@@ -488,6 +488,46 @@ def rm(repo: 'GitRepository', paths: list[str], delete: bool = True, skip_missin
             os.unlink(path)
 
     index.entries = kept_entries
+    index_write(repo, index)
+
+# ------------------------------------------------[add]--------------------------------------------------
+
+# Signature: Namespace -> None
+# Purpose: Extracts the argument from the CLI and delegates to the add function.
+def cmd_add(args: Namespace) -> None:
+    repo: 'GitRepository' = GitRepository.repo_find()
+    add(repo, args.path)
+
+# Signature: GitRepository, list[str], bool, bool -> None
+# Purpose: Removes the existing index entry (if there's one) and modifies it with the add changes and writes it back.
+def add(repo: 'GitRepository', paths: list[str], delete: bool = True, skip_missing: bool = False) -> None:
+    rm(repo, paths, delete=False, skip_missing=True)
+    
+    worktree: str = repo.worktree + os.sep
+
+    clean_paths: set = {}
+    for path in paths:
+        absolute_path: str = os.path.abspath(path)
+        if not (absolute_path.startswith(worktree) and os.path.isfile(absolute_path)):
+            raise Exception(f"Not a file, or outside the worktree: {paths}")
+        relative_path: str = os.path.relpath(absolute_path, repo.worktree)
+        clean_paths.add((absolute_path, relative_path))
+
+    index: 'GitIndex' = index_read(repo)
+
+    for (abspath, relpath) in clean_paths:
+        with open(abspath, "rb") as fd:
+            sha: str = object_hash(fd, b"blob", repo)
+            stat: stat_result = os.stat(abspath)
+            ctime_s: int = int(stat.st_ctime)
+            ctime_ns: int = stat.st_ctime_ns * 10**9
+            mtime_s: int = int(stat.st_mtime)
+            mtime_ns: int = stat.st_mtime_ns * 10**9
+            entry: 'GitIndexEntry' = GitIndexEntry(ctime=(ctime_s, ctime_ns), mtime=(mtime_s, mtime_ns), dev=stat.st_dev,
+                                                    mode_type=0b1000, mode_perms=0o644, uid=stat.st_uid, gid=stat.st_gid,
+                                                    flag_assume_valid=False, flag_stage=False, name=relpath)
+            index.append(entry)
+    
     index_write(repo, index)
 
 

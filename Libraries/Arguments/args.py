@@ -47,7 +47,10 @@ argsp.add_argument("--verbose", action="store_true", help="Show everything.")
 argsp = argsubparsers.add_parser("check-ignore", help="Check path(s) against ignore rules.")
 argsp.add_argument("path", nargs="+", help="Paths to check.")
 
-arps = argsubparsers.add_parser("status", help="Show the working tree status.")
+arpsp = argsubparsers.add_parser("status", help="Show the working tree status.")
 
-args = argsubparsers.add_parser("rm", help="Remove files from the working tree and the index.")
+argsp = argsubparsers.add_parser("rm", help="Remove files from the working tree and the index.")
 argsp.add_argument("path", nargs="+", help="Files to remove.")
+
+argsp = argsubparsers.add_parser("add", help="Add file contents to the index.")
+argsp.add_argument("path", nargs="+", help="Files to add.")
