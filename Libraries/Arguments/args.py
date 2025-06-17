@@ -54,3 +54,6 @@ argsp.add_argument("path", nargs="+", help="Files to remove.")
 
 argsp = argsubparsers.add_parser("add", help="Add file contents to the index.")
 argsp.add_argument("path", nargs="+", help="Files to add.")
+
+argsp = argsubparsers.add_parser("commit", help="Records the changes to the repository.")
+argsp.add_argument("-m", metavar="message", dest="message", help="Message to associate with this commit.")

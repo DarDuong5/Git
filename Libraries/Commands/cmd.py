@@ -1,13 +1,16 @@
+import configparser
 import grp
 from os import stat_result
 from posixpath import abspath
 import pwd
 import sys
 from typing import TYPE_CHECKING, BinaryIO, Optional
+from venv import create
 from blinker import Namespace
 import re
 from datetime import datetime
 
+from Objects.Trees.TreeLeafs.git_tree_leaf import GitTreeLeaf
 from StageIndex.IndexEntry.git_index_entry import GitIndexEntry
 from Libraries.Arguments.args import *
 from GitRepo.git_repository import GitRepository
@@ -524,11 +527,101 @@ def add(repo: 'GitRepository', paths: list[str], delete: bool = True, skip_missi
             mtime_s: int = int(stat.st_mtime)
             mtime_ns: int = stat.st_mtime_ns * 10**9
             entry: 'GitIndexEntry' = GitIndexEntry(ctime=(ctime_s, ctime_ns), mtime=(mtime_s, mtime_ns), dev=stat.st_dev,
-                                                    mode_type=0b1000, mode_perms=0o644, uid=stat.st_uid, gid=stat.st_gid,
+                                                    mode_type=0b1000, mode_perms=0o644, uid=stat.st_uid, gid=stat.st_gid, fsize=stat.st_size, sha=sha,
                                                     flag_assume_valid=False, flag_stage=False, name=relpath)
             index.append(entry)
     
     index_write(repo, index)
 
+# ------------------------------------------------[commit]--------------------------------------------------
 
+# Signature: None -> configparser
+# Purpose: To read git's config to get the name of the user.
+def gitconfig_read() -> configparser:
+    xdg_config_home: str = os.environ["XDG_CONFIG_HOME"] if "XDG_CONFIG_HOME" in os.environ else "~/.config"
+    config_files: list[str] = [
+        os.path.expanduser(os.path.join(xdg_config_home, "git/config")),
+        os.path.expanduser("~/.gitconfig")
+    ]
 
+    config: configparser = configparser.ConfigParser()
+    config.read(config_files)
+    return config
+
+# Signature: configparser -> Optional[str]
+# Purpose: To get and format the user identity.
+def gitconfig_user_get(config: configparser) -> Optional[str]:
+    if "user" in config:
+        if "name" in config["user"] and "email" in config["user"]:
+            return f"{config['user']['name']} <{config['user']['email']}>"
+    return None
+
+def tree_from_index(repo: 'GitRepository', index: 'GitIndex') -> str:
+    contents: dict = dict()
+    contents[""] = []
+
+    for entry in index.entries:
+        dirname: str = os.path.dirname(entry.name)
+        key: str = dirname
+        while key != "":
+            if not key in contents:
+                contents[key] = []
+            key = os.path.dirname(key)
+        
+        contents[dirname].append(entry)
+
+    sorted_paths = sorted(contents.keys(), key=len, reverse=True)
+    sha = None
+
+    for path in sorted_paths:
+        tree: GitTree = GitTree()
+        for entry in contents[path]:
+            if isinstance(entry, GitIndexEntry):
+                leaf_mode: bytes = f"{entry.mode_type:02o}{entry.mode_perms:04o}".encode("ascii")
+                leaf: GitTreeLeaf = GitTreeLeaf(mode = leaf_mode, path=os.path.basename(entry.name), sha=entry.sha)
+            else:
+                leaf = GitTreeLeaf(mode=b"040000", path=entry[0], sha=entry[1])
+            tree.items.append(leaf)
+
+        sha: str = object_write(tree, repo)
+        parent: str = os.path.dirname(path)
+        base: str = os.path.basename(path)
+        contents[parent].append((base, sha))
+    
+    return sha
+
+# Signature: GitRepository -> str
+# Purpose: To create a commit object.
+def create_commit(repo: GitRepository, tree: str, parent: str, author: str, timestamp: datetime, message: str) -> str:
+    commit: GitCommit = GitCommit()
+    commit.kvlm[b'tree'] = tree.encode("ascii")
+    if parent:
+        commit.kvlm[b'parent'] = parent.encode("ascii")
+    
+    message = message.strip() + "\n"
+    offset: int = int(timestamp.astimezone().utcoffset().total_seconds())
+    hours: int = offset // 3600
+    minutes: int = (offset % 3600) // 60
+    timezone: str = "{}{:02}{:02}".format("+" if offset > 0 else "-", hours, minutes)
+    author = author + timestamp.strftime(" %s ") + timezone
+
+    commit.kvlm[b'author'] = author.encode("utf8")
+    commit.kvlm[b'committer'] = author.encode("uft8")
+    commit.kvlm[None] = message.encode("utf8")
+
+    return object_write(commit, repo)
+
+# Signature: Namespace -> None
+# Purpose: Extracts the argument from the CLI and delegates to the commit function.
+def cmd_commit(args: Namespace) -> None:
+    repo: 'GitRepository' = GitRepository.repo_find()
+    index: 'GitIndex' = index_read(repo)
+    tree: 'GitTree' = tree_from_index(repo, index)
+    commit: str = create_commit(repo, tree, object_find(repo, "HEAD"), gitconfig_user_get(gitconfig_read()), datetime.now(), args.message)
+    active_branch: Union[bool, str] = branch_get_active(repo)
+    if active_branch:
+        with open(GitRepository.repo_find(repo, os.path.join("refs/heads", active_branch)), "w") as fd:
+            fd.write(commit + "\n")
+    else:
+        with open(GitRepository.repo_find(repo, "HEAD"), "w") as fd:
+            fd.write("\n")
